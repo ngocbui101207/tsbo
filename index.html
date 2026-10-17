@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeDrive ITS — Hệ thống Cảnh báo Mất tập trung Lái xe (YOLOv12n + MediaPipe)</title>
+  
+  <!-- Font chữ tiêu đề: TT Commons Pro -->
+  <link href="https://fonts.cdnfonts.com/css/tt-commons-pro" rel="stylesheet">
+  
+  <!-- ONNX Runtime Web (Chạy YOLOv12n best.onnx cục bộ) -->
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+  
+  <!-- Google MediaPipe Face Mesh (Đo tỷ lệ hình học khuôn mặt EAR, MAR, Head Pose) -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+  <style>
+    :root {
+      /*Colors*/
+      --color-white: #FFFFFF;
+      --color-grey-50: #F7F8FA;
+      --color-grey-100: #ECEEF2;
+      --color-grey-200: #D5D9E0;
+      --color-grey-500: #68707E;
+      --color-grey-700: #363A42;
+      --color-black: #1e1f20;
+      --color-black-panel: #15171C;
+      --color-red: #941d23;
+      --color-red-dark: #580509;
+      --color-red-soft: #FEECEE;
+
+      /* Font */
+      --font-heading: 'TT Commons Pro', 'Arial', sans-serif;
+      --font-body: Arial, Helvetica, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background-color: var(--color-grey-100);
+      color: var(--color-black);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.45;
+    }
+
+    h1, h2, h3, h4, .card-title, .kpi-val, .alert-banner, .hud-pill, .badge {
+      font-family: var(--font-heading);
+      letter-spacing: -0.01em;
+    }
+
+    header {
+      background: var(--color-black);
+      color: var(--color-white);
+      border-bottom: 3px solid var(--color-red);
+      padding: 14px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      background: var(--color-red);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: var(--color-white);
+      letter-spacing: 0.5px;
+    }
+
+    .brand h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--color-white);
+    }
+
+    .brand p {
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      color: var(--color-grey-200);
+    }
+
+    .header-badges {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      background: var(--color-black-panel);
+      border: 1px solid var(--color-grey-700);
+      color: var(--color-white);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--color-grey-500);
+    }
+
+    .dot.online {
+      background: var(--color-white);
+      box-shadow: 0 0 8px var(--color-white);
+    }
+
+    .dot.danger-dot {
+      background: var(--color-red);
+      box-shadow: 0 0 8px var(--color-red);
+    }
+
+    /* BỐ CỤC CHÍNH */
+    main {
+      flex: 1;
+      max-width: 1480px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: 1.42fr 1.08fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 1100px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--color-white);
+      border: 1px solid var(--color-grey-200);
+      border-radius: 12px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 2px 8px rgba(11, 12, 14, 0.05);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--color-grey-100);
+      padding-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--color-black);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-transform: uppercase;
+    }
+
+    /* KHUNG CAMERA & OVERLAY */
+    .viewport-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      max-height: 490px;
+      background: var(--color-black);
+      border-radius: 10px;
+      overflow: hidden;
+      border: 3px solid var(--color-black);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .viewport-wrapper.state-safe {
+      border-color: var(--color-black);
+    }
+
+    .viewport-wrapper.state-danger {
+      border-color: var(--color-red);
+      box-shadow: 0 0 28px rgba(217, 27, 36, 0.65);
+      animation: pulseDanger 0.7s infinite alternate;
+    }
+
+    @keyframes pulseDanger {
+      from { box-shadow: 0 0 10px rgba(217, 27, 36, 0.35); }
+      to   { box-shadow: 0 0 32px rgba(217, 27, 36, 0.9); }
+    }
+
+    .flash-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--color-white);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 10;
+      transition: opacity 0.22s ease;
+    }
+
+    .flash-overlay.active {
+      opacity: 0.8;
+    }
+
+    video, #overlay-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .mirror-video {
+      transform: scaleX(-1);
+    }
+
+    .hud-top {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+      z-index: 5;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .hud-pill {
+      background: rgba(11, 12, 14, 0.86);
+      color: var(--color-white);
+      border: 1px solid var(--color-grey-700);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    /* THÔNG SỐ TRÊN MÀN HÌNH */
+    .mp-telemetry-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      background: var(--color-grey-50);
+      border: 1px solid var(--color-grey-200);
+      border-radius: 8px;
+      padding: 10px 14px;
+    }
+
+    .mp-metric {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .mp-metric span.label {
+      font-size: 0.74rem;
+      color: var(--color-grey-500);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .mp-metric span.val {
+      font-family: var(--font-heading);
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--color-black);
+    }
+
+    .mp-metric span.val.alert {
+      color: var(--color-red);
+    }
+
+    /* CHỤP ẢNH */
+    .snapshot-toast {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: var(--color-black);
+      color: var(--color-white);
+      border: 2px solid var(--color-red);
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 8;
+      font-size: 0.8rem;
+      transform: translateY(140%);
+      transition: transform 0.25s ease;
+    }
+
+    .snapshot-toast.show {
+      transform: translateY(0);
+    }
+
+    .snapshot-toast img {
+      width: 52px;
+      height: 38px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid var(--color-red);
+    }
+
+    /* THANH CẢNH BÁO */
+    .alert-banner {
+      padding: 14px 18px;
+      border-radius: 8px;
+      background: var(--color-grey-50);
+      color: var(--color-black);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      font-size: 1.05rem;
+      border-left: 6px solid var(--color-black);
+      border-top: 1px solid var(--color-grey-200);
+      border-right: 1px solid var(--color-grey-200);
+      border-bottom: 1px solid var(--color-grey-200);
+      transition: all 0.2s;
+    }
+
+    .alert-banner.safe {
+      background: var(--color-white);
+      border-left-color: var(--color-black);
+      color: var(--color-black);
+    }
+
+    .alert-banner.warning {
+      background: var(--color-grey-100);
+      border-left-color: var(--color-red);
+      color: var(--color-black);
+    }
+
+    .alert-banner.danger {
+      background: var(--color-red);
+      border-color: var(--color-red-dark);
+      border-left: 6px solid var(--color-black);
+      color: var(--color-white);
+    }
+
+    /* NÚT BẤM */
+    .controls-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    button, .file-btn, select {
+      font-family: var(--font-body);
+      background: var(--color-grey-50);
+      color: var(--color-black);
+      border: 1px solid var(--color-grey-200);
+      padding: 8px 13px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+
+    button:hover, .file-btn:hover, select:hover {
+      background: var(--color-grey-200);
+      border-color: var(--color-grey-500);
+    }
+
+    button.primary {
+      background: var(--color-black);
+      border-color: var(--color-black);
+      color: var(--color-white);
+    }
+
+    button.primary:hover {
+      background: var(--color-grey-700);
+    }
+
+    button.danger-btn {
+      background: var(--color-red);
+      border-color: var(--color-red);
+      color: var(--color-white);
+    }
+
+    button.danger-btn:hover {
+      background: var(--color-red-dark);
+    }
+
+    button.active-toggle {
+      background: var(--color-black);
+      border-color: var(--color-black);
+      color: var(--color-white);
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    /* 4 Ô CHỈ SỐ KPI */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 640px) {
+      .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .kpi-box {
+      background: var(--color-grey-50);
+      border: 1px solid var(--color-grey-200);
+      border-radius: 8px;
+      padding: 10px 12px;
+      text-align: center;
+    }
+
+    .kpi-label {
+      font-size: 0.75rem;
+      color: var(--color-grey-500);
+      font-weight: 700;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .kpi-val {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--color-black);
+    }
+
+    /* THANH TRƯỢT CÀI ĐẶT */
+    .setting-row {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .setting-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--color-black);
+      font-weight: 700;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--color-red);
+      cursor: pointer;
+    }
+
+    .settings-two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    /* DANH SÁCH 11 NHÃN */
+    .class-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 12px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .class-item {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 0.77rem;
+      background: var(--color-grey-50);
+      padding: 7px 9px;
+      border-radius: 6px;
+      border: 1px solid var(--color-grey-200);
+    }
+
+    .class-item-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 4px;
+      color: var(--color-black);
+      font-weight: 700;
+    }
+
+    .role-pill {
+      font-size: 0.68rem;
+      padding: 2px 7px;
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: none;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .role-pill.role-safe {
+      background: var(--color-white);
+      color: var(--color-black);
+      border: 1px solid var(--color-black);
+    }
+
+    .role-pill.role-danger {
+      background: var(--color-red);
+      color: var(--color-white);
+      border: 1px solid var(--color-red);
+    }
+
+    .role-pill.role-ignore {
+      background: var(--color-grey-200);
+      color: var(--color-grey-700);
+      border: 1px solid var(--color-grey-500);
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 7px;
+      background: var(--color-grey-200);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--color-black);
+      transition: width 0.1s ease;
+    }
+
+    /* BẢNG LỊCH SỬ VI PHẠM */
+    .log-container {
+      max-height: 215px;
+      overflow-y: auto;
+      border: 1px solid var(--color-grey-200);
+      border-radius: 6px;
+      background: var(--color-white);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+
+    th, td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--color-grey-100);
+      vertical-align: middle;
+    }
+
+    th {
+      background: var(--color-black);
+      color: var(--color-white);
+      font-family: var(--font-heading);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.76rem;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    .log-thumb {
+      width: 56px;
+      height: 42px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid var(--color-black);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    .log-thumb:hover {
+      transform: scale(1.08);
+      border-color: var(--color-red);
+    }
+
+    /* MODAL THƯ VIỆN & LIGHTBOX */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(11, 12, 14, 0.82);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 16px;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--color-white);
+      border: 2px solid var(--color-black);
+      border-radius: 12px;
+      max-width: 560px;
+      width: 100%;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-height: 90vh;
+    }
+
+    .modal.large-modal {
+      max-width: 920px;
+    }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      overflow-y: auto;
+      max-height: 62vh;
+      padding: 4px;
+    }
+
+    .gallery-card {
+      background: var(--color-grey-50);
+      border: 1px solid var(--color-grey-200);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .gallery-card img {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      cursor: pointer;
+    }
+
+    .gallery-meta {
+      padding: 8px 10px;
+      font-size: 0.78rem;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .gallery-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .gallery-actions button {
+      flex: 1;
+      padding: 5px 8px;
+      font-size: 0.74rem;
+      justify-content: center;
+    }
+
+    .lightbox-img {
+      width: 100%;
+      max-height: 65vh;
+      object-fit: contain;
+      border-radius: 6px;
+      background: var(--color-black);
+      border: 1px solid var(--color-grey-200);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">ITS</div>
+      <div>
+        <h1>SAFEDRIVE - HỆ THỐNG CẢNH BÁO MẤT TẬP TRUNG KHI LÁI XE</h1>
+      </div>
+    </div>
+
+  <!-- MAIN -->
+  <main>
+    <!-- Màn giám sát -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Màn hình giám sát</div>
+      </div>
+
+      <!-- Bounding boxes -->
+      <div id="viewport" class="viewport-wrapper">
+        <video id="webcam" class="mirror-video" autoplay playsinline muted></video>
+        <canvas id="overlay-canvas" width="640" height="480"></canvas>
+        <div id="flash-overlay" class="flash-overlay"></div>
+
+        <div class="hud-top">
+          <div class="hud-pill" id="fps-pill">⚡ 0 FPS | 0 ms</div>
+          <div class="hud-pill" id="timer-pill">Mất tập trung: 0.0s</div>
+        </div>
+
+        <div id="snapshot-toast" class="snapshot-toast">
+          <img id="toast-img" src="" alt="Snapshot">
+          <div>
+            <div style="font-weight: 700; color: var(--color-red);">📸 ĐÃ CHỤP BẰNG CHỨNG!</div>
+            <div id="toast-desc" style="color: var(--color-grey-200); font-size: 0.74rem;">Đã lưu vào lịch sử</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="violation-status-bar" style="background-color: var(--color-grey-100); border-left: 5px solid var(--color-black); padding: 16px; font-family: Arial, sans-serif; font-weight: bold; font-size: 1.1rem; border-radius: 6px; text-align: center; margin-top: 12px;">
+        Đang theo dõi hành vi lái xe
+      </div>
+
+      <div id="alert-banner" class="alert-banner" style="display: none;">
+        <span id="alert-text">Bấm 'Bắt đầu Giám sát' để kích hoạt...</span>
+        <span id="alert-conf">--%</span>
+      </div>
+
+      <div class="controls-grid" style="display: block;">
+        <button id="toggle-cam-btn" class="danger-btn" style="width: 100%; padding: 18px; font-size: 1.25rem; font-weight: bold; border-radius: 8px; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 12px rgba(217, 27, 36, 0.3);">
+          BẮT ĐẦU
+        </button>
+      </div>
+
+      <!-- 4 Chỉ số KPI -->
+      <div class="kpi-row">
+        <div class="kpi-box">
+          <div class="kpi-label">Chỉ số Tập trung</div>
+          <div class="kpi-val" id="kpi-score">100%</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-label">Ảnh Vi phạm Đã chụp</div>
+          <div class="kpi-val" id="kpi-alerts" style="color: var(--color-red);">0</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-label">Thời gian Giám sát</div>
+          <div class="kpi-val" id="kpi-duration">00:00</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-label">Trạng thái Còi</div>
+          <div class="kpi-val" id="kpi-alarm-state">Sẵn sàng</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CỘT PHẢI: CÀI ĐẶT ÂM THANH, THÔNG SỐ AI KÉP & LỊCH SỬ ẢNH -->
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+
+      <!-- Cài đặt Cảnh báo Âm thanh & Độ nhạy -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🔊 Cấu hình Cảnh báo & Độ nhạy AI Kép</div>
+          <button id="test-sound-btn" class="danger-btn">🔔 Nghe thử chuông</button>
+        </div>
+
+        <div class="settings-two-col">
+          <div class="setting-row">
+            <label class="setting-label">Nguồn âm thanh cảnh báo</label>
+            <select id="sound-type">
+              <option value="mp3">🎵 File âm thanh dự án (sound.mp3)</option>
+              <option value="siren">🚨 Còi báo động khẩn cấp (Siren)</option>
+              <option value="beep">🔊 Tiếng Bíp tần số cao (Beep)</option>
+              <option value="voice">🗣️ Giọng nói nhắc nhở (Tiếng Việt)</option>
+              <option value="mute">🔇 Tắt âm thanh (Chỉ nháy đỏ & chụp ảnh)</option>
+            </select>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              <span>Ngưỡng nhạy YOLO (Confidence)</span>
+              <span id="conf-val">25%</span>
+            </div>
+            <input type="range" id="conf-slider" min="10" max="85" step="5" value="25">
+          </div>
+        </div>
+
+        <div class="settings-two-col">
+          <div class="setting-row">
+            <div class="setting-label">
+              <span>Thời gian lỗi trước khi báo động & chụp</span>
+              <span id="delay-val">1.0 giây</span>
+            </div>
+            <input type="range" id="alarm-delay-slider" min="0.2" max="4.0" step="0.1" value="1.0">
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              <span>Ngưỡng nhắm mắt MediaPipe (EAR)</span>
+              <span id="ear-thresh-val">0.20</span>
+            </div>
+            <input type="range" id="ear-slider" min="0.14" max="0.28" step="0.01" value="0.20">
+          </div>
+        </div>
+      </div>
+
+      <!-- Biểu đồ 11 Nhãn Thời gian thực (Kết hợp YOLO + MediaPipe) -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📊 Trạng thái 11 Nhãn Hành vi (YOLOv12n + MediaPipe)</div>
+          <button id="reset-roles-btn" style="padding:4px 8px; font-size:0.75rem;">🔄 Mặc định</button>
+        </div>
+        <div id="class-bars" class="class-list"></div>
+      </div>
+
+      <!-- Nhật ký Vi phạm kèm Ảnh tự động chụp -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📋 Nhật ký Vi phạm & Bằng chứng Hình ảnh</div>
+          <div style="display:flex; gap:6px;">
+            <button id="view-all-photos-btn">🖼️ Thư viện</button>
+            <button id="export-csv-btn">📥 Xuất CSV</button>
+            <button id="clear-log-btn">🗑️ Xóa</button>
+          </div>
+        </div>
+        <div class="log-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Ảnh chụp</th>
+                <th>Thời gian</th>
+                <th>Hành vi vi phạm</th>
+                <th>Nguồn phát hiện</th>
+                <th>Chi tiết</th>
+              </tr>
+            </thead>
+            <tbody id="log-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- MODAL 1: THƯ VIỆN LỊCH SỬ ẢNH ĐÃ CHỤP -->
+  <div id="gallery-modal" class="modal-backdrop">
+    <div class="modal large-modal">
+      <div class="card-header">
+        <div class="card-title">🖼️ Thư viện Ảnh Bằng chứng Vi phạm</div>
+        <div style="display:flex; gap:8px;">
+          <button id="clear-gallery-btn" class="danger-btn">🗑️ Xóa toàn bộ</button>
+          <button id="close-gallery-btn">✖️ Đóng</button>
+        </div>
+      </div>
+      <div id="gallery-grid" class="gallery-grid"></div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: XEM CHI TIẾT PHÓNG TO 1 ẢNH VI PHẠM -->
+  <div id="lightbox-modal" class="modal-backdrop">
+    <div class="modal large-modal">
+      <div class="card-header">
+        <div class="card-title" id="lightbox-title">🔍 Chi tiết Ảnh Vi phạm</div>
+        <div style="display:flex; gap:8px;">
+          <button id="download-single-btn" class="primary">⬇️ Tải ảnh (.jpg)</button>
+          <button id="close-lightbox-btn">✖️ Đóng</button>
+        </div>
+      </div>
+      <img id="lightbox-img" class="lightbox-img" src="" alt="Ảnh vi phạm phóng to">
+      <div id="lightbox-meta" style="font-size: 0.85rem; color: var(--color-grey-700); text-align: center; font-weight: 700;"></div>
+    </div>
+  </div>
+
+  <!-- Canvas ẩn dùng để chuẩn hóa khung hình chuẩn Letterbox 640x640 đưa vào YOLO -->
+  <canvas id="prep-canvas" width="640" height="640" style="display:none;"></canvas>
+  <!-- File âm thanh gốc của dự án -->
+  <audio id="project-sound" src="./sound.mp3" preload="auto"></audio>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeDrive ITS — Trang Quản trị Hệ thống (Admin)</title>
+  <link href="https://fonts.cdnfonts.com/css/tt-commons-pro" rel="stylesheet">
+  <style>
+    :root {
+      --color-white: #FFFFFF;
+      --color-grey-50: #F7F8FA;
+      --color-grey-100: #ECEEF2;
+      --color-grey-200: #D5D9E0;
+      --color-grey-500: #68707E;
+      --color-grey-700: #363A42;
+      --color-black: #1e1f20;
+      --color-red: #941d23;
+      --color-red-dark: #580509;
+      --font-heading: 'TT Commons Pro', 'Arial', sans-serif;
+      --font-body: Arial, Helvetica, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background-color: var(--color-grey-100);
+      color: var(--color-black);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--color-black);
+      color: var(--color-white);
+      border-bottom: 3px solid var(--color-red);
+      padding: 14px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand-icon {
+      width: 42px; height: 42px; border-radius: 8px;
+      background: var(--color-red);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1.15rem; color: var(--color-white);
+    }
+
+    main {
+      max-width: 1050px;
+      width: 100%;
+      margin: 28px auto;
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--color-white);
+      border: 1px solid var(--color-grey-200);
+      border-radius: 12px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 2px 8px rgba(11, 12, 14, 0.05);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--color-grey-100);
+      padding-bottom: 12px;
+    }
+
+    .card-title {
+      font-family: var(--font-heading);
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    button, select, input[type="password"] {
+      font-family: var(--font-body);
+      background: var(--color-grey-50);
+      color: var(--color-black);
+      border: 1px solid var(--color-grey-200);
+      padding: 9px 14px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.primary { background: var(--color-black); color: var(--color-white); border-color: var(--color-black); }
+    button.danger-btn { background: var(--color-red); color: var(--color-white); border-color: var(--color-red); }
+
+    .settings-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 700px) { .settings-two-col { grid-template-columns: 1fr; } }
+
+    .setting-row { display: flex; flex-direction: column; gap: 6px; }
+    .setting-label { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; }
+    input[type="range"] { width: 100%; accent-color: var(--color-red); cursor: pointer; }
+
+    .class-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 14px;
+    }
+    @media (max-width: 700px) { .class-list { grid-template-columns: 1fr; } }
+
+    .class-item {
+      display: flex; flex-direction: column; gap: 6px;
+      font-size: 0.82rem; background: var(--color-grey-50);
+      padding: 10px 12px; border-radius: 6px; border: 1px solid var(--color-grey-200);
+    }
+
+    .class-item-head { display: flex; justify-content: space-between; align-items: center; font-weight: 700; }
+    .role-pill { font-size: 0.72rem; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-weight: 700; }
+    .role-pill.role-safe { background: var(--color-white); color: var(--color-black); border: 1px solid var(--color-black); }
+    .role-pill.role-danger { background: var(--color-red); color: var(--color-white); border: 1px solid var(--color-red); }
+    .role-pill.role-ignore { background: var(--color-grey-200); color: var(--color-grey-700); border: 1px solid var(--color-grey-500); }
+
+    .progress-track { width: 100%; height: 8px; background: var(--color-grey-200); border-radius: 99px; overflow: hidden; }
+    .progress-fill { height: 100%; width: 0%; background: var(--color-black); transition: width 0.1s ease; }
+
+    /* Màn hình khóa đăng nhập Admin */
+    #login-box { max-width: 420px; margin: 80px auto; text-align: center; }
+    #admin-panel { display: none; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon">ITS</div>
+      <div>
+        <h1 style="font-size: 1.2rem;">SAFEDRIVE — BẢNG ĐIỀU KHIỂN QUẢN TRỊ VIÊN (ADMIN)</h1>
+      </div>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <a href="./index.html" style="text-decoration: none;">
+        <button class="primary">⬅️ Về Màn hình Tài xế</button>
+      </a>
+      <button id="logout-btn" class="danger-btn" style="display: none;">Đăng xuất</button>
+    </div>
+  </header>
+
+  <!-- KHỐI ĐĂNG NHẬP ADMIN -->
+  <div id="login-box" class="card">
+    <div class="card-title" style="justify-content: center; font-size: 1.25rem;">🔒 XÁC THỰC QUẢN TRỊ VIÊN</div>
+    <p style="font-size: 0.85rem; color: var(--color-grey-500);">Chỉ Quản trị viên mới có quyền chỉnh sửa độ nhạy AI và phân quyền nhãn hành vi.</p>
+    <input type="password" id="admin-pass" placeholder="Nhập mật khẩu Admin (Mặc định: admin123)" style="width: 100%; text-align: center;">
+    <div id="login-err" style="color: var(--color-red); font-size: 0.82rem; font-weight: bold; display: none;">❌ Mật khẩu không chính xác!</div>
+    <button id="login-btn" class="danger-btn" style="width: 100%; justify-content: center; padding: 12px;">ĐĂNG NHẬP</button>
+  </div>
+
+  <!-- BẢNG ĐIỀU KHIỂN CHÍNH (CHỈ HIỆN KHI ĐÃ ĐĂNG NHẬP) -->
+  <main id="admin-panel">
+    <!-- Cài đặt Cảnh báo Âm thanh & Độ nhạy -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🔊 Cấu hình Cảnh báo & Độ nhạy AI Kép</div>
+        <span style="font-size: 0.8rem; color: var(--color-red); font-weight: bold;">⚡ Tự động đồng bộ thời gian thực với màn hình lái xe</span>
+      </div>
+
+      <div class="settings-two-col">
+        <div class="setting-row">
+          <label class="setting-label">Nguồn âm thanh cảnh báo</label>
+          <select id="sound-type">
+            <option value="mp3">🎵 File âm thanh dự án (sound.mp3)</option>
+            <option value="siren">🚨 Còi báo động khẩn cấp (Siren)</option>
+            <option value="beep">🔊 Tiếng Bíp tần số cao (Beep)</option>
+            <option value="voice">🗣️ Giọng nói nhắc nhở (Tiếng Việt)</option>
+            <option value="mute">🔇 Tắt âm thanh (Chỉ nháy đỏ & chụp ảnh)</option>
+          </select>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-label">
+            <span>Ngưỡng nhạy YOLO (Confidence)</span>
+            <span id="conf-val">25%</span>
+          </div>
+          <input type="range" id="conf-slider" min="10" max="85" step="5" value="25">
+        </div>
+      </div>
+
+      <div class="settings-two-col">
+        <div class="setting-row">
+          <div class="setting-label">
+            <span>Thời gian lỗi trước khi báo động & chụp</span>
+            <span id="delay-val">1.0 giây</span>
+          </div>
+          <input type="range" id="alarm-delay-slider" min="0.2" max="4.0" step="0.1" value="1.0">
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-label">
+            <span>Ngưỡng nhắm mắt MediaPipe (EAR)</span>
+            <span id="ear-thresh-val">0.20</span>
+          </div>
+          <input type="range" id="ear-slider" min="0.14" max="0.28" step="0.01" value="0.20">
+        </div>
+      </div>
+    </div>
+
+    <!-- Biểu đồ 11 Nhãn Thời gian thực -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📊 Phân quyền & Trạng thái 11 Nhãn Hành vi (YOLOv12n + MediaPipe)</div>
+        <button id="reset-roles-btn">🔄 Khôi phục Mặc định</button>
+      </div>
+      <div id="class-bars" class="class-list"></div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { CLASS_LABELS, DEFAULT_ROLES } from './yolo.js';
+
+    const ADMIN_PASS = 'admin123'; // Mật khẩu Admin
+
+    const loginBox = document.getElementById('login-box');
+    const adminPanel = document.getElementById('admin-panel');
+    const passInput = document.getElementById('admin-pass');
+    const loginErr = document.getElementById('login-err');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    function checkAuth() {
+      if (sessionStorage.getItem('safedrive_admin_auth') === 'true') {
+        loginBox.style.display = 'none';
+        adminPanel.style.display = 'flex';
+        logoutBtn.style.display = 'inline-flex';
+      }
+    }
+    checkAuth();
+
+    document.getElementById('login-btn').addEventListener('click', () => {
+      if (passInput.value === ADMIN_PASS) {
+        sessionStorage.setItem('safedrive_admin_auth', 'true');
+        loginErr.style.display = 'none';
+        checkAuth();
+      } else {
+        loginErr.style.display = 'block';
+      }
+    });
+
+    passInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('login-btn').click();
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      sessionStorage.removeItem('safedrive_admin_auth');
+      location.reload();
+    });
+
+    // --- QUẢN LÝ CÀI ĐẶT ĐỘ NHẠY & ÂM THANH ---
+    const soundSelect = document.getElementById('sound-type');
+    const confSlider = document.getElementById('conf-slider');
+    const delaySlider = document.getElementById('alarm-delay-slider');
+    const earSlider = document.getElementById('ear-slider');
+
+    // Nạp giá trị hiện tại từ localStorage
+    soundSelect.value = localStorage.getItem('safedrive_sound_mode') || 'mp3';
+    
+    const savedConf = Math.round((parseFloat(localStorage.getItem('safedrive_conf_thresh')) || 0.25) * 100);
+    confSlider.value = savedConf;
+    document.getElementById('conf-val').textContent = `${savedConf}%`;
+
+    const savedDelay = parseFloat(localStorage.getItem('safedrive_alarm_delay')) || 1.0;
+    delaySlider.value = savedDelay;
+    document.getElementById('delay-val').textContent = `${savedDelay.toFixed(1)} giây`;
+
+    const savedEar = parseFloat(localStorage.getItem('safedrive_ear_thresh')) || 0.20;
+    earSlider.value = savedEar;
+    document.getElementById('ear-thresh-val').textContent = savedEar.toFixed(2);
+
+    // Lưu ngay khi kéo thanh trượt
+    soundSelect.addEventListener('change', (e) => {
+      localStorage.setItem('safedrive_sound_mode', e.target.value);
+    });
+    confSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10) / 100;
+      document.getElementById('conf-val').textContent = `${e.target.value}%`;
+      localStorage.setItem('safedrive_conf_thresh', val);
+    });
+    delaySlider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      document.getElementById('delay-val').textContent = `${val.toFixed(1)} giây`;
+      localStorage.setItem('safedrive_alarm_delay', val);
+    });
+    earSlider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      document.getElementById('ear-thresh-val').textContent = val.toFixed(2);
+      localStorage.setItem('safedrive_ear_thresh', val);
+    });
+
+    // --- QUẢN LÝ 11 NHÃN HÀNH VI ---
+    let classRoles = JSON.parse(localStorage.getItem('yolov12_its_roles')) || [...DEFAULT_ROLES];
+
+    function getRoleLabel(role) {
+      if (role === 'safe') return 'An toàn';
+      if (role === 'danger') return 'Cảnh báo';
+      return 'Bỏ qua';
+    }
+
+    function getRoleColor(role) {
+      if (role === 'safe') return 'var(--color-black)';
+      if (role === 'danger') return 'var(--color-red)';
+      return 'var(--color-grey-500)';
+    }
+
+    window.toggleClassRole = function(idx) {
+      const order = ['danger', 'safe', 'ignore'];
+      const nextIdx = (order.indexOf(classRoles[idx]) + 1) % order.length;
+      classRoles[idx] = order[nextIdx];
+      localStorage.setItem('yolov12_its_roles', JSON.stringify(classRoles));
+      document.getElementById('class-bars').innerHTML = '';
+      renderClassBars();
+    };
+
+    document.getElementById('reset-roles-btn').addEventListener('click', () => {
+      classRoles = [...DEFAULT_ROLES];
+      localStorage.setItem('yolov12_its_roles', JSON.stringify(classRoles));
+      document.getElementById('class-bars').innerHTML = '';
+      renderClassBars();
+    });
+
+    function renderClassBars(scoresArray = new Array(CLASS_LABELS.length).fill(0)) {
+      const container = document.getElementById('class-bars');
+      if (container.children.length !== CLASS_LABELS.length) {
+        container.innerHTML = CLASS_LABELS.map((name, idx) => {
+          const role = classRoles[idx] || 'danger';
+          return `
+            <div class="class-item">
+              <div class="class-item-head">
+                <span>${idx}. ${name}</span>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span id="prob-text-${idx}" style="font-weight:700;">0%</span>
+                  <span class="role-pill role-${role}" onclick="toggleClassRole(${idx})">
+                    ${getRoleLabel(role)}
+                  </span>
+                </div>
+              </div>
+              <div class="progress-track">
+                <div id="prob-bar-${idx}" class="progress-fill" style="background: ${getRoleColor(role)}"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      CLASS_LABELS.forEach((_, idx) => {
+        const pct = Math.min(100, Math.round((scoresArray[idx] || 0) * 100));
+        const txtEl = document.getElementById(`prob-text-${idx}`);
+        const barEl = document.getElementById(`prob-bar-${idx}`);
+        if (txtEl) txtEl.textContent = `${pct}%`;
+        if (barEl) barEl.style.width = `${pct}%`;
+      });
+    }
+
+    renderClassBars();
+
+    // Lắng nghe điểm số thời gian thực truyền từ trang Tài xế sang
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'safedrive_live_scores' && e.newValue) {
+        renderClassBars(JSON.parse(e.newValue));
+      }
+    });
+  </script>
+</body>
+</html>
