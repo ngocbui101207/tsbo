@@ -13,9 +13,6 @@ import {
   getLatestMpResult
 } from './mediapipe.js';
 
-// =========================================================================
-// ĐỒNG BỘ CẤU HÌNH TỪ TRANG ADMIN QUA LOCALSTORAGE
-// =========================================================================
 let classRoles = [...DEFAULT_ROLES];
 try {
   const saved = JSON.parse(localStorage.getItem('safedrive_roles_v2'));
@@ -191,13 +188,13 @@ async function inferenceLoop() {
   if (violationBar) {
     if (activeDistraction) {
       const alertMessages = {
-        1: "CẢNH BÁO: NHẮM MẮT / NGỦ GẬT!",
+        1: "CẢNH BÁO: NGỦ GẬT!",
         3: "CẢNH BÁO: CÚI GỤC ĐẦU!",
-        4: "CẢNH BÁO: ĐANG ĂN / UỐNG NƯỚC!",
+        4: "CẢNH BÁO: ĐANG ĂN UỐNG!",
         6: "CẢNH BÁO: SỬ DỤNG ĐIỆN THOẠI!",
-        7: "CẢNH BÁO: CHỈNH RADIO / MÀN HÌNH!",
-        9: "CẢNH BÁO: QUAY MẶT / MẤT TẬP TRUNG!",
-        10: "CẢNH BÁO: MỆT MỎI / NGÁP NGỦ!"
+        7: "CẢNH BÁO: CHỈNH RADIO!",
+        9: "CẢNH BÁO: LÀM VIỆC RIÊNG!",
+        10: "CẢNH BÁO: MỆT MỎI!"
       };
       violationBar.innerHTML = alertMessages[activeDistraction.classId] || `🚨 CẢNH BÁO: ${CLASS_LABELS[activeDistraction.classId].toUpperCase()}`;
       violationBar.style.borderLeftColor = "var(--color-red)";
@@ -544,7 +541,7 @@ async function startCamera() {
     rafId = requestAnimationFrame(inferenceLoop);
   } catch (err) {
     if (violationBar) {
-      violationBar.innerHTML = "Không thể mở Camera: " + err.message;
+      violationBar.innerHTML = "Không thể mở camera: " + err.message;
       violationBar.style.color = "var(--color-red)";
     }
   }

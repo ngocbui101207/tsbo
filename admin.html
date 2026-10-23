@@ -55,6 +55,7 @@
       background: var(--color-red);
       display: flex; align-items: center; justify-content: center;
       font-weight: 800; font-size: 1.05rem; color: var(--color-white);
+      flex-shrink: 0;
     }
 
     main {
@@ -129,7 +130,7 @@
     }
 
     .class-item-head { display: flex; justify-content: space-between; align-items: center; font-weight: 700; gap: 6px; }
-    .role-pill { font-size: 0.72rem; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-weight: 700; white-space: nowrap; }
+    .role-pill { font-size: 0.72rem; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-weight: 700; white-space: nowrap; user-select: none; }
     .role-pill.role-safe { background: var(--color-white); color: var(--color-black); border: 1px solid var(--color-black); }
     .role-pill.role-danger { background: var(--color-red); color: var(--color-white); border: 1px solid var(--color-red); }
     .role-pill.role-ignore { background: var(--color-grey-200); color: var(--color-grey-700); border: 1px solid var(--color-grey-500); }
@@ -152,27 +153,25 @@
     </div>
     <div style="display: flex; gap: 8px;">
       <a href="./index.html" style="text-decoration: none;">
-        <button class="primary">Về màn hình giám sát</button>
+        <button class="primary">Về Màn hình Giám sát</button>
       </a>
       <button id="logout-btn" class="danger-btn" style="display: none;">Đăng xuất</button>
     </div>
   </header>
 
-  <!-- Đăng nhập -->
   <div id="login-box" class="card">
     <div class="card-title" style="text-align: center; font-size: 1.2rem;">XÁC THỰC QUẢN TRỊ VIÊN</div>
-    <p style="font-size: 0.85rem; color: var(--color-grey-500);">Chỉ quản trị viên mới có quyền xem và chỉnh sửa.</p>
-    <input type="password" id="admin-pass" placeholder="Nhập mật khẩu Admin (Mặc định: admin123)" style="width: 100%; text-align: center;">
-    <div id="login-err" style="color: var(--color-red); font-size: 0.82rem; font-weight: bold; display: none;">❌ Mật khẩu không chính xác!</div>
-    <button id="login-btn" class="danger-btn" style="width: 100%; justify-content: center; padding: 12px;">ĐĂNG NHẬP</button>
+    <p style="font-size: 0.85rem; color: var(--color-grey-500);">Chỉ quản trị viên mới có quyền xem nội dung này.</p>
+    <input type="password" id="admin-pass" placeholder="Nhập mật khẩu Admin" style="width: 100%; text-align: center;">
+    <div id="login-err" style="color: var(--color-red); font-size: 0.82rem; font-weight: bold; display: none;">❌ Mật khẩu không chính xác</div>
+    <button id="login-btn" type="button" class="danger-btn" style="width: 100%; justify-content: center; padding: 12px;">ĐĂNG NHẬP</button>
   </div>
 
-  <!-- Bảng điều khiển -->
   <main id="admin-panel">
     <div class="card">
       <div class="card-header">
-        <div class="card-title">Cấu hình cảnh báo & Độ nhạy</div>
-        <button id="test-sound-btn" class="danger-btn">Nghe thử chuông</button>
+        <div class="card-title">Cấu hình cảnh báo</div>
+        <button id="test-sound-btn" type="button" class="danger-btn">Nghe thử chuông</button>
       </div>
 
       <div class="settings-two-col">
@@ -181,7 +180,7 @@
           <select id="sound-type">
             <option value="mp3">File âm thanh dự án (sound.mp3)</option>
             <option value="siren">Còi báo động khẩn cấp</option>
-            <option value="beep">Tiếng bíp tần số cao</option>
+            <option value="beep">Tiếng Bíp tần số cao</option>
             <option value="voice">Giọng nói nhắc nhở</option>
             <option value="mute">Tắt âm thanh</option>
           </select>
@@ -207,7 +206,7 @@
 
         <div class="setting-row">
           <div class="setting-label">
-            <span>Ngưỡng nhắm mắt MediaPipe</span>
+            <span>Ngưỡng MediaPipe</span>
             <span id="ear-thresh-val">0.20</span>
           </div>
           <input type="range" id="ear-slider" min="0.14" max="0.28" step="0.01" value="0.20">
@@ -218,7 +217,7 @@
     <div class="card">
       <div class="card-header">
         <div class="card-title">Nhãn</div>
-        <button id="reset-roles-btn">🔄 Mặc định</button>
+        <button id="reset-roles-btn" type="button">🔄 Reset</button>
       </div>
       <div id="class-bars" class="class-list"></div>
     </div>
@@ -226,8 +225,34 @@
 
   <audio id="project-sound" src="./sound.mp3" preload="auto"></audio>
 
-  <script type="module">
-    import { CLASS_LABELS, DEFAULT_ROLES } from './yolo.js';
+  <script>
+    const CLASS_LABELS = [
+      "Nhãn 0",                // 0: '0'
+      "Nhắm mắt",              // 1: 'close_eye'
+      "Lái xe an toàn",        // 2: 'correct'
+      "Ngủ gật",               // 3: 'dozing'
+      "Ăn uống",               // 4: 'drinking'
+      "Khuôn mặt bình thường", // 5: 'face'
+      "Dùng điện thoại",       // 6: 'mobile'
+      "Chỉnh Radio",           // 7: 'radio'
+      "Nói chuyện",            // 8: 'talking'
+      "Làm việc riêng",        // 9: 'work'
+      "Mệt mỏi"  
+    ];
+
+    const DEFAULT_ROLES = [
+      'ignore', // 0
+      'ignore', // 1: close_eye (MediaPipe)
+      'safe',   // 2: correct
+      'ignore', // 3: dozing (MediaPipe)
+      'danger', // 4: drinking (YOLO)
+      'safe',   // 5: face
+      'danger', // 6: mobile (YOLO)
+      'danger', // 7: radio (YOLO)
+      'ignore', // 8: talking
+      'ignore', // 9: work (MediaPipe)
+      'ignore'  // 10: yawn (MediaPipe)
+    ];
 
     const ADMIN_PASS = 'admin123';
 
@@ -238,27 +263,31 @@
     const logoutBtn = document.getElementById('logout-btn');
     const projectSound = document.getElementById('project-sound');
 
-    function checkAuth() {
-      if (sessionStorage.getItem('safedrive_admin_auth') === 'true') {
-        loginBox.style.display = 'none';
-        adminPanel.style.display = 'flex';
-        logoutBtn.style.display = 'inline-flex';
-      }
+    function unlockAdmin() {
+      loginBox.style.display = 'none';
+      adminPanel.style.display = 'flex';
+      logoutBtn.style.display = 'inline-flex';
     }
-    checkAuth();
+
+    if (sessionStorage.getItem('safedrive_admin_auth') === 'true') {
+      unlockAdmin();
+    }
 
     document.getElementById('login-btn').addEventListener('click', () => {
-      if (passInput.value === ADMIN_PASS) {
+      if (passInput.value.trim() === ADMIN_PASS) {
         sessionStorage.setItem('safedrive_admin_auth', 'true');
         loginErr.style.display = 'none';
-        checkAuth();
+        unlockAdmin();
       } else {
         loginErr.style.display = 'block';
       }
     });
 
     passInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') document.getElementById('login-btn').click();
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('login-btn').click();
+      }
     });
 
     logoutBtn.addEventListener('click', () => {
@@ -304,8 +333,9 @@
       localStorage.setItem('safedrive_ear_thresh', val);
     });
 
+    // Nghe thử chuông
     let audioCtx = null;
-    function playTestSound() {
+    document.getElementById('test-sound-btn').addEventListener('click', () => {
       const mode = soundSelect.value;
       if (mode === 'mute') return;
       if (mode === 'mp3' && projectSound) {
@@ -335,16 +365,21 @@
       gain.connect(audioCtx.destination);
       osc.start(now);
       osc.stop(now + 0.32);
-    }
-    document.getElementById('test-sound-btn').addEventListener('click', playTestSound);
+    });
 
-     let classRoles = [...DEFAULT_ROLES];
+    let classRoles = [...DEFAULT_ROLES];
     try {
-      const saved = JSON.parse(localStorage.getItem('safedrive_roles_v2'));
+      const saved = JSON.parse(localStorage.getItem('safedrive_roles_v2') || localStorage.getItem('yolov12_its_roles'));
       if (Array.isArray(saved) && saved.length === DEFAULT_ROLES.length) {
         classRoles = saved;
       }
     } catch (_) {}
+
+    function saveRoles(roles) {
+      const str = JSON.stringify(roles);
+      localStorage.setItem('safedrive_roles_v2', str);
+      localStorage.setItem('yolov12_its_roles', str);
+    }
 
     function getRoleLabel(role) {
       if (role === 'safe') return 'An toàn';
@@ -362,14 +397,14 @@
       const order = ['danger', 'safe', 'ignore'];
       const nextIdx = (order.indexOf(classRoles[idx]) + 1) % order.length;
       classRoles[idx] = order[nextIdx];
-      localStorage.setItem('safedrive_roles_v2', JSON.stringify(classRoles));
+      saveRoles(classRoles);
       document.getElementById('class-bars').innerHTML = '';
       renderClassBars();
     };
 
     document.getElementById('reset-roles-btn').addEventListener('click', () => {
       classRoles = [...DEFAULT_ROLES];
-      localStorage.setItem('safedrive_roles_v2', JSON.stringify(classRoles));
+      saveRoles(classRoles);
       document.getElementById('class-bars').innerHTML = '';
       renderClassBars();
     });
