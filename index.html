@@ -3,12 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SAFEDRIVE — Hệ thống Cảnh báo Mất tập trung Lái xe</title>
+  <title>SAFEDRIVE - TSBO</title>
   
-  <!-- ONNX Runtime Web (Chạy YOLOv12n best.onnx cục bộ) -->
   <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
   
-  <!-- Google MediaPipe Face Mesh -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 
   <style>
@@ -94,7 +92,6 @@
       flex-shrink: 0;
     }
 
-    /* BỐ CỤC CHÍNH CHỐNG TRÀN TRÊN ĐIỆN THOẠI */
     main {
       flex: 1;
       max-width: 1440px;
@@ -147,7 +144,6 @@
       text-transform: uppercase;
     }
 
-    /* KHUNG CAMERA */
     .viewport-wrapper {
       position: relative;
       width: 100%;
@@ -225,7 +221,6 @@
       font-weight: 700;
     }
 
-    /* THÔNG BÁO CHỤP ẢNH */
     .snapshot-toast {
       position: absolute;
       bottom: 12px;
@@ -256,7 +251,6 @@
       border: 1px solid var(--color-red);
     }
 
-    /* NÚT BẤM */
     button {
       background: var(--color-grey-50);
       color: var(--color-black);
@@ -288,7 +282,6 @@
       color: var(--color-white);
     }
 
-    /* 4 Ô CHỈ SỐ KPI */
     .kpi-row {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -367,7 +360,6 @@
       cursor: pointer;
     }
 
-    /* MODAL THƯ VIỆN & LIGHTBOX */
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -453,7 +445,6 @@
 </head>
 <body>
 
-  <!-- HEADER (Đã đóng thẻ </header> đầy đủ để không bị lỗi nửa nền đen trên điện thoại) -->
   <header>
     <div class="brand">
       <div class="brand-icon">ITS</div>
@@ -463,14 +454,13 @@
     </div>
     <div class="header-badges">
       <a href="./admin.html" style="text-decoration: none;">
-        <button class="primary">🔒 Quản trị (Admin)</button>
+        <button class="primary">🔒</button>
       </a>
     </div>
   </header>
 
   <!-- MAIN -->
   <main>
-    <!-- CỘT TRÁI: Màn hình giám sát -->
     <div class="card">
       <div class="card-header">
         <div class="card-title">Màn hình giám sát</div>
@@ -496,7 +486,6 @@
         </div>
       </div>
 
-      <!-- Thanh báo lỗi duy nhất -->
       <div id="violation-status-bar" style="background-color: var(--color-grey-100); border-left: 5px solid var(--color-black); padding: 16px; font-weight: bold; font-size: 1.1rem; border-radius: 6px; text-align: center;">
         Đang theo dõi hành vi lái xe
       </div>
@@ -507,7 +496,6 @@
         </button>
       </div>
 
-      <!-- 4 Chỉ số KPI -->
       <div class="kpi-row">
         <div class="kpi-box">
           <div class="kpi-label">Chỉ số Tập trung</div>
@@ -528,14 +516,13 @@
       </div>
     </div>
 
-    <!-- CỘT PHẢI: Nhật ký Vi phạm & Bằng chứng Hình ảnh -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">📋 Nhật ký Vi phạm & Bằng chứng Hình ảnh</div>
+        <div class="card-title">Hình ảnh vi phạm</div>
         <div style="display:flex; gap:6px; flex-wrap: wrap;">
-          <button id="view-all-photos-btn">🖼️ Thư viện</button>
-          <button id="export-csv-btn">📥 Xuất CSV</button>
-          <button id="clear-log-btn">🗑️ Xóa</button>
+          <button id="view-all-photos-btn">Thư viện</button>
+          <button id="export-csv-btn">Xuất CSV</button>
+          <button id="clear-log-btn">Xóa</button>
         </div>
       </div>
       <div class="log-container">
@@ -555,13 +542,12 @@
     </div>
   </main>
 
-  <!-- MODAL 1: THƯ VIỆN LỊCH SỬ ẢNH ĐÃ CHỤP -->
   <div id="gallery-modal" class="modal-backdrop">
     <div class="modal">
       <div class="card-header">
-        <div class="card-title">🖼️ Thư viện Ảnh Bằng chứng Vi phạm</div>
+        <div class="card-title">Minh chứng vi phạm</div>
         <div style="display:flex; gap:8px;">
-          <button id="clear-gallery-btn" class="danger-btn">🗑️ Xóa toàn bộ</button>
+          <button id="clear-gallery-btn" class="danger-btn">Xóa toàn bộ</button>
           <button id="close-gallery-btn">✖️ Đóng</button>
         </div>
       </div>
@@ -569,13 +555,12 @@
     </div>
   </div>
 
-  <!-- MODAL 2: XEM CHI TIẾT PHÓNG TO 1 ẢNH VI PHẠM -->
   <div id="lightbox-modal" class="modal-backdrop">
     <div class="modal">
       <div class="card-header">
         <div class="card-title" id="lightbox-title">🔍 Chi tiết Ảnh Vi phạm</div>
         <div style="display:flex; gap:8px;">
-          <button id="download-single-btn" class="primary">⬇️ Tải ảnh (.jpg)</button>
+          <button id="download-single-btn" class="primary">Tải ảnh (.jpg)</button>
           <button id="close-lightbox-btn">✖️ Đóng</button>
         </div>
       </div>
@@ -584,7 +569,6 @@
     </div>
   </div>
 
-  <!-- Canvas ẩn chuẩn hóa khung hình 640x640 cho YOLO & File âm thanh -->
   <canvas id="prep-canvas" width="640" height="640" style="display:none;"></canvas>
   <audio id="project-sound" src="./sound.mp3" preload="auto"></audio>
 

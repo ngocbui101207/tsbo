@@ -4,31 +4,31 @@ export const DEFAULT_MODEL_PATH = './best.onnx';
 export const INPUT_SIZE = 640;
 
 export const CLASS_LABELS = [
-  "Nhãn 0 (Bỏ qua)",                 // 0: '0'
-  "Nhắm mắt (close_eye)",            // 1: 'close_eye'
-  "Lái xe an toàn (correct)",        // 2: 'correct'
-  "Ngủ gật / Gục đầu (dozing)",      // 3: 'dozing'
-  "Uống nước / Ăn uống (drinking)",  // 4: 'drinking'
-  "Khuôn mặt bình thường (face)",    // 5: 'face'
-  "Dùng điện thoại (mobile)",        // 6: 'mobile'
-  "Chỉnh Radio / Màn hình (radio)",  // 7: 'radio'
-  "Nói chuyện (talking)",            // 8: 'talking'
-  "Làm việc riêng / Quay đầu (work)",// 9: 'work'
-  "Ngáp / Mệt mỏi (yawn)"            // 10: 'yawn'
+  "Nhãn 0",                // 0: '0'
+  "Nhắm mắt",              // 1: 'close_eye'
+  "Lái xe an toàn",        // 2: 'correct'
+  "Ngủ gật",               // 3: 'dozing'
+  "Ăn uống",               // 4: 'drinking'
+  "Khuôn mặt bình thường", // 5: 'face'
+  "Dùng điện thoại",       // 6: 'mobile'
+  "Chỉnh Radio",           // 7: 'radio'
+  "Nói chuyện",            // 8: 'talking'
+  "Làm việc riêng",        // 9: 'work'
+  "Mệt mỏi"                // 10: 'yawn'
 ];
 
 export const DEFAULT_ROLES = [
   'ignore', // 0: '0' (Bỏ qua)
-  'ignore', // 1: 'close_eye' -> YOLO bỏ qua, nhường MediaPipe
+  'ignore', // 1: 'close_eye'
   'safe',   // 2: 'correct'
-  'ignore', // 3: 'dozing'    -> YOLO bỏ qua, nhường MediaPipe
-  'danger', // 4: 'drinking'  -> YOLO bắt
+  'ignore', // 3: 'dozing'
+  'danger', // 4: 'drinking'
   'safe',   // 5: 'face'
-  'danger', // 6: 'mobile'    -> YOLO bắt
-  'danger', // 7: 'radio'     -> YOLO bắt
-  'ignore', // 8: 'talking'   -> Bỏ qua hoàn toàn
-  'ignore', // 9: 'work'      -> YOLO bỏ qua, nhường MediaPipe
-  'ignore'  // 10: 'yawn'     -> YOLO bỏ qua, nhường MediaPipe
+  'danger', // 6: 'mobile'  
+  'danger', // 7: 'radio'  
+  'ignore', // 8: 'talking'  
+  'ignore', // 9: 'work'    
+  'ignore'  // 10: 'yawn' 
 ];
 
 export const SPECIFIC_GESTURE_IDS = new Set([1, 3, 4, 6, 7, 9, 10]);
@@ -84,24 +84,21 @@ function preprocessFrameLetterbox(video, prepCtx, overlayCanvas, useBGR) {
 
   if (!useBGR) {
     for (let i = 0; i < PIXEL_COUNT; i++) {
-      reusableFloat32Buffer[i] = imgData[i * 4] / 255.0;                       // R
-      reusableFloat32Buffer[i + PIXEL_COUNT] = imgData[i * 4 + 1] / 255.0;     // G
-      reusableFloat32Buffer[i + 2 * PIXEL_COUNT] = imgData[i * 4 + 2] / 255.0; // B
+      reusableFloat32Buffer[i] = imgData[i * 4] / 255.0;                       
+      reusableFloat32Buffer[i + PIXEL_COUNT] = imgData[i * 4 + 1] / 255.0;    
+      reusableFloat32Buffer[i + 2 * PIXEL_COUNT] = imgData[i * 4 + 2] / 255.0; 
     }
   } else {
     for (let i = 0; i < PIXEL_COUNT; i++) {
-      reusableFloat32Buffer[i] = imgData[i * 4 + 2] / 255.0;                   // B
-      reusableFloat32Buffer[i + PIXEL_COUNT] = imgData[i * 4 + 1] / 255.0;     // G
-      reusableFloat32Buffer[i + 2 * PIXEL_COUNT] = imgData[i * 4] / 255.0;     // R
+      reusableFloat32Buffer[i] = imgData[i * 4 + 2] / 255.0;
+      reusableFloat32Buffer[i + PIXEL_COUNT] = imgData[i * 4 + 1] / 255.0;
+      reusableFloat32Buffer[i + 2 * PIXEL_COUNT] = imgData[i * 4] / 255.0;
     }
   }
 
   return reusableInputTensor;
 }
 
-/**
- * Tính chỉ số chồng lấp IoU (Intersection over Union) cho thuật toán NMS
- */
 function iou(boxA, boxB) {
   const xA = Math.max(boxA[0], boxB[0]);
   const yA = Math.max(boxA[1], boxB[1]);
@@ -111,9 +108,6 @@ function iou(boxA, boxB) {
   return inter / (boxA[2] * boxA[3] + boxB[2] * boxB[3] - inter + 1e-6);
 }
 
-/**
- * Giải mã Tensor đầu ra của YOLOv12n [1, 15, 8400]
- */
 function decodeYolo(outputTensor, classRoles, confThreshold) {
   const data = outputTensor.data;
   const dims = outputTensor.dims;
@@ -170,9 +164,6 @@ function decodeYolo(outputTensor, classRoles, confThreshold) {
   return { detections, classScores };
 }
 
-/**
- * Hàm chạy suy luận YOLOv12n trên 1 khung hình
- */
 export async function runYoloInference(video, prepCtx, overlayCanvas, useBGR, classRoles, confThreshold) {
   if (!session) {
     overlayCanvas.width = video.videoWidth || 640;
@@ -188,7 +179,6 @@ export async function runYoloInference(video, prepCtx, overlayCanvas, useBGR, cl
   const outTensor = results[session.outputNames[0]];
   const decoded = decodeYolo(outTensor, classRoles, confThreshold);
 
-  // Giải phóng bộ nhớ Tensor đầu ra ngay sau khi đọc xong
   if (typeof outTensor.dispose === 'function') {
     outTensor.dispose();
   }

@@ -10,12 +10,10 @@ let latestMpResult = {
   landmarks: null
 };
 
-//Khoảng cách Euclid 2D giữa 2 điểm mốc
 function dist2D(p1, p2) {
   return Math.hypot(p1.x - p2.x, p1.y - p2.y);
 }
 
-//Tỷ lệ mở mắt [góc ngoài, mí trên 1, mí trên 2, góc trong, mí dưới 2, mí dưới 1]
 function calculateEAR(lm, indices) {
   const v1 = dist2D(lm[indices[1]], lm[indices[5]]);
   const v2 = dist2D(lm[indices[2]], lm[indices[4]]);
@@ -23,7 +21,6 @@ function calculateEAR(lm, indices) {
   return (v1 + v2) / (2.0 * h + 1e-6);
 }
 
-// Tỷ lệ mở miệng
 function calculateMAR(lm) {
   const v1 = dist2D(lm[81], lm[178]);
   const v2 = dist2D(lm[13], lm[14]);
@@ -32,7 +29,7 @@ function calculateMAR(lm) {
   return (v1 + v2 + v3) / (3.0 * h + 1e-6);
 }
 
-// Khởi tạo Google MediaPipe Face Mesh (478 điểm 3D)
+// Khởi tạo
 export async function initMediaPipe(onStatusChange) {
   try {
     faceMesh = new FaceMesh({
@@ -65,7 +62,6 @@ export async function initMediaPipe(onStatusChange) {
       const avgEAR = (leftEAR + rightEAR) / 2.0;
       const mar = calculateMAR(lm);
 
-      // Tính tỷ lệ quay ngang (Yaw) và cúi đầu (Pitch)
       const nose = lm[1];
       const forehead = lm[10];
       const chin = lm[152];
@@ -108,7 +104,6 @@ export function getLatestMpResult() {
   return latestMpResult;
 }
 
-// Vẽ các điểm mốc mắt, mũi, miệng, cằm lên màn hình giám sát
 export function drawMediaPipeLandmarks(overlayCtx, overlayCanvas, lm, isMirrored) {
   if (!lm) return;
   const w = overlayCanvas.width;

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SAFEDRIVE — Trang Quản trị Hệ thống (Admin)</title>
+  <title>SAFEDRIVE (Admin)</title>
   <style>
     :root {
       --color-white: #FFFFFF;
@@ -147,50 +147,49 @@
     <div class="brand">
       <div class="brand-icon">ITS</div>
       <div>
-        <h1 style="font-size: 1.1rem;">SAFEDRIVE — QUẢN TRỊ HỆ THỐNG (ADMIN)</h1>
+        <h1 style="font-size: 1.1rem;">SAFEDRIVE (ADMIN)</h1>
       </div>
     </div>
     <div style="display: flex; gap: 8px;">
       <a href="./index.html" style="text-decoration: none;">
-        <button class="primary">⬅️ Về Màn hình Giám sát</button>
+        <button class="primary">Về màn hình giám sát</button>
       </a>
       <button id="logout-btn" class="danger-btn" style="display: none;">Đăng xuất</button>
     </div>
   </header>
 
-  <!-- KHỐI ĐĂNG NHẬP ADMIN -->
+  <!-- Đăng nhập -->
   <div id="login-box" class="card">
-    <div class="card-title" style="text-align: center; font-size: 1.2rem;">🔒 XÁC THỰC QUẢN TRỊ VIÊN</div>
-    <p style="font-size: 0.85rem; color: var(--color-grey-500);">Chỉ Quản trị viên mới có quyền chỉnh sửa Cấu hình Cảnh báo, Độ nhạy AI và Trạng thái 11 Nhãn.</p>
+    <div class="card-title" style="text-align: center; font-size: 1.2rem;">XÁC THỰC QUẢN TRỊ VIÊN</div>
+    <p style="font-size: 0.85rem; color: var(--color-grey-500);">Chỉ quản trị viên mới có quyền xem và chỉnh sửa.</p>
     <input type="password" id="admin-pass" placeholder="Nhập mật khẩu Admin (Mặc định: admin123)" style="width: 100%; text-align: center;">
     <div id="login-err" style="color: var(--color-red); font-size: 0.82rem; font-weight: bold; display: none;">❌ Mật khẩu không chính xác!</div>
     <button id="login-btn" class="danger-btn" style="width: 100%; justify-content: center; padding: 12px;">ĐĂNG NHẬP</button>
   </div>
 
-  <!-- BẢNG ĐIỀU KHIỂN ADMIN -->
+  <!-- Bảng điều khiển -->
   <main id="admin-panel">
-    <!-- Cài đặt Cảnh báo Âm thanh & Độ nhạy -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">🔊 Cấu hình Cảnh báo & Độ nhạy AI Kép</div>
-        <button id="test-sound-btn" class="danger-btn">🔔 Nghe thử chuông</button>
+        <div class="card-title">Cấu hình cảnh báo & Độ nhạy</div>
+        <button id="test-sound-btn" class="danger-btn">Nghe thử chuông</button>
       </div>
 
       <div class="settings-two-col">
         <div class="setting-row">
           <label class="setting-label">Nguồn âm thanh cảnh báo</label>
           <select id="sound-type">
-            <option value="mp3">🎵 File âm thanh dự án (sound.mp3)</option>
-            <option value="siren">🚨 Còi báo động khẩn cấp (Siren)</option>
-            <option value="beep">🔊 Tiếng Bíp tần số cao (Beep)</option>
-            <option value="voice">🗣️ Giọng nói nhắc nhở (Tiếng Việt)</option>
-            <option value="mute">🔇 Tắt âm thanh (Chỉ nháy đỏ & chụp ảnh)</option>
+            <option value="mp3">File âm thanh dự án (sound.mp3)</option>
+            <option value="siren">Còi báo động khẩn cấp</option>
+            <option value="beep">Tiếng bíp tần số cao</option>
+            <option value="voice">Giọng nói nhắc nhở</option>
+            <option value="mute">Tắt âm thanh</option>
           </select>
         </div>
 
         <div class="setting-row">
           <div class="setting-label">
-            <span>Ngưỡng nhạy YOLO (Confidence)</span>
+            <span>Ngưỡng nhạy YOLO</span>
             <span id="conf-val">25%</span>
           </div>
           <input type="range" id="conf-slider" min="10" max="85" step="5" value="25">
@@ -208,7 +207,7 @@
 
         <div class="setting-row">
           <div class="setting-label">
-            <span>Ngưỡng nhắm mắt MediaPipe (EAR)</span>
+            <span>Ngưỡng nhắm mắt MediaPipe</span>
             <span id="ear-thresh-val">0.20</span>
           </div>
           <input type="range" id="ear-slider" min="0.14" max="0.28" step="0.01" value="0.20">
@@ -216,10 +215,9 @@
       </div>
     </div>
 
-    <!-- Biểu đồ 11 Nhãn Thời gian thực -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">📊 Trạng thái 11 Nhãn Hành vi (YOLOv12n + MediaPipe)</div>
+        <div class="card-title">Nhãn</div>
         <button id="reset-roles-btn">🔄 Mặc định</button>
       </div>
       <div id="class-bars" class="class-list"></div>
@@ -268,7 +266,6 @@
       location.reload();
     });
 
-    // --- CẤU HÌNH ĐỘ NHẠY & ÂM THANH ---
     const soundSelect = document.getElementById('sound-type');
     const confSlider = document.getElementById('conf-slider');
     const delaySlider = document.getElementById('alarm-delay-slider');
@@ -307,7 +304,6 @@
       localStorage.setItem('safedrive_ear_thresh', val);
     });
 
-    // Nghe thử chuông ngay trong trang Admin
     let audioCtx = null;
     function playTestSound() {
       const mode = soundSelect.value;
@@ -342,8 +338,7 @@
     }
     document.getElementById('test-sound-btn').addEventListener('click', playTestSound);
 
-    // --- QUẢN LÝ 11 NHÃN HÀNH VI ---
-    let classRoles = [...DEFAULT_ROLES];
+     let classRoles = [...DEFAULT_ROLES];
     try {
       const saved = JSON.parse(localStorage.getItem('safedrive_roles_v2'));
       if (Array.isArray(saved) && saved.length === DEFAULT_ROLES.length) {

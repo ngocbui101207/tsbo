@@ -41,7 +41,7 @@ let alarmDelaySec = parseFloat(localStorage.getItem('safedrive_alarm_delay')) ||
 let earThreshold = parseFloat(localStorage.getItem('safedrive_ear_thresh')) || 0.20;
 let marThreshold = 0.55;
 
-// Tự động cập nhật ngay khi Admin chỉnh thông số ở trang quản trị
+// Cập nhật thông số
 window.addEventListener('storage', (e) => {
   if (e.key === 'safedrive_roles_v2') {
     try { classRoles = JSON.parse(e.newValue) || [...DEFAULT_ROLES]; } catch (_) {}
@@ -92,15 +92,11 @@ let safeFrames = 0;
 let sessionStartTime = Date.now();
 let toastTimeout = null;
 
-// =========================================================================
-// 1. KHỞI TẠO 2 MODULE AI (YOLOv12n & MEDIAPIPE)
-// =========================================================================
+// Khởi tạo
 loadYoloModel(DEFAULT_MODEL_PATH, 'best.onnx');
 initMediaPipe();
 
-// =========================================================================
-// 2. VÒNG LẶP SUY LUẬN HỢP NHẤT (KHÔNG VẼ BOUNDING BOX & CHẤM MEDIAPIPE)
-// =========================================================================
+// Brain
 async function inferenceLoop() {
   if (!isMonitoring) return;
 
@@ -137,7 +133,6 @@ async function inferenceLoop() {
     isInferring = false;
   }
 
-  // Hợp nhất số liệu từ MediaPipe
   const mpResult = getLatestMpResult();
   if (useMediaPipe && mpResult.hasFace) {
     const { ear, mar, pitchRatio, yawRatio } = mpResult;
@@ -165,14 +160,14 @@ async function inferenceLoop() {
     }
   }
 
-  // Cập nhật FPS (Không vẽ bất kỳ hình hộp hay chấm nào lên video)
+  // FPS
   const inferMs = Math.round(performance.now() - t0);
   const fps = Math.min(60, Math.round(1000 / Math.max(16, inferMs)));
   if (fpsPill) fpsPill.textContent = `⚡ ${fps} FPS | ${inferMs} ms`;
 
   overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
-  // Xét quyền ưu tiên cảnh báo: 1 (Nhắm mắt) -> 2 (Đồ vật YOLO: Điện thoại, Ăn uống, Radio) -> 3 (Tư thế đầu/Ngáp)
+  // Ưu tiên
   let activeDistraction = null;
 
   detections.forEach(det => {
@@ -192,33 +187,32 @@ async function inferenceLoop() {
     }
   });
 
-  // Cập nhật Thanh Báo Lỗi Duy Nhất (#violation-status-bar)
+  // Thanh trạng thái
   if (violationBar) {
     if (activeDistraction) {
       const alertMessages = {
-        1: "🚨 CẢNH BÁO: NHẮM MẮT / NGỦ GẬT!",
-        3: "🚨 CẢNH BÁO: CÚI GỤC ĐẦU!",
-        4: "🚨 CẢNH BÁO: ĐANG ĂN / UỐNG NƯỚC!",
-        6: "🚨 CẢNH BÁO: SỬ DỤNG ĐIỆN THOẠI!",
-        7: "🚨 CẢNH BÁO: CHỈNH RADIO / MÀN HÌNH!",
-        9: "🚨 CẢNH BÁO: QUAY MẶT / MẤT TẬP TRUNG!",
-        10: "⚠️ CẢNH BÁO: MỆT MỎI / NGÁP NGỦ!"
+        1: "CẢNH BÁO: NHẮM MẮT / NGỦ GẬT!",
+        3: "CẢNH BÁO: CÚI GỤC ĐẦU!",
+        4: "CẢNH BÁO: ĐANG ĂN / UỐNG NƯỚC!",
+        6: "CẢNH BÁO: SỬ DỤNG ĐIỆN THOẠI!",
+        7: "CẢNH BÁO: CHỈNH RADIO / MÀN HÌNH!",
+        9: "CẢNH BÁO: QUAY MẶT / MẤT TẬP TRUNG!",
+        10: "CẢNH BÁO: MỆT MỎI / NGÁP NGỦ!"
       };
       violationBar.innerHTML = alertMessages[activeDistraction.classId] || `🚨 CẢNH BÁO: ${CLASS_LABELS[activeDistraction.classId].toUpperCase()}`;
       violationBar.style.borderLeftColor = "var(--color-red)";
       violationBar.style.color = "var(--color-red)";
     } else if (useMediaPipe && !mpResult.hasFace) {
-      violationBar.innerHTML = "⚠️ Chưa phát hiện khuôn mặt";
+      violationBar.innerHTML = "Chưa phát hiện khuôn mặt";
       violationBar.style.borderLeftColor = "var(--color-grey-500)";
       violationBar.style.color = "var(--color-grey-500)";
     } else {
-      violationBar.innerHTML = "✅ AN TOÀN (Đang tập trung)";
+      violationBar.innerHTML = "AN TOÀN (Đang tập trung)";
       violationBar.style.borderLeftColor = "var(--color-black)";
       violationBar.style.color = "var(--color-black)";
     }
   }
 
-  // Truyền dữ liệu phần trămリアルタイム sang trang Admin
   try {
     localStorage.setItem('safedrive_live_scores', JSON.stringify(classScores));
   } catch (_) {}
@@ -237,7 +231,7 @@ function updateSafetyState(distraction) {
   if (distraction) {
     if (!distractionStartTime) distractionStartTime = performance.now();
     const elapsedSec = (performance.now() - distractionStartTime) / 1000;
-    if (timerPill) timerPill.textContent = `⏱️ Mất tập trung: ${elapsedSec.toFixed(1)}s`;
+    if (timerPill) timerPill.textContent = `Mất tập trung: ${elapsedSec.toFixed(1)}s`;
 
     const labelName = CLASS_LABELS[distraction.classId];
     const confPct = Math.round(distraction.score * 100);
@@ -263,7 +257,7 @@ function updateSafetyState(distraction) {
   } else {
     safeFrames++;
     distractionStartTime = null;
-    if (timerPill) timerPill.textContent = `⏱️ Mất tập trung: 0.0s`;
+    if (timerPill) timerPill.textContent = `Mất tập trung: 0.0s`;
     if (viewport) viewport.className = 'viewport-wrapper state-safe';
     const kpiAlarm = document.getElementById('kpi-alarm-state');
     if (kpiAlarm) {
@@ -277,9 +271,7 @@ function updateSafetyState(distraction) {
   if (kpiScore) kpiScore.textContent = `${safetyScore}%`;
 }
 
-// =========================================================================
-// 3. CHỤP ẢNH BẰNG CHỨNG TỰ ĐỘNG & LỊCH SỬ
-// =========================================================================
+// Chụp ảnh
 function captureViolationPhoto(behaviorName, confPct, durationSec, sourceName) {
   const snapCanvas = document.createElement('canvas');
   const w = (video && video.videoWidth) || 640;
@@ -306,7 +298,7 @@ function captureViolationPhoto(behaviorName, confPct, durationSec, sourceName) {
   sCtx.fillRect(0, h - 38, w, 38);
   sCtx.fillStyle = '#FFFFFF';
   sCtx.font = 'bold 13px Arial, sans-serif';
-  sCtx.fillText(`🚨 VI PHẠM: ${behaviorName.toUpperCase()} (${confPct}% - ${sourceName}) | ${timeStr}`, 12, h - 14);
+  sCtx.fillText(`VI PHẠM: ${behaviorName.toUpperCase()} (${confPct}% - ${sourceName}) | ${timeStr}`, 12, h - 14);
 
   if (flashOverlay) {
     flashOverlay.classList.add('active');
@@ -410,11 +402,11 @@ function renderHistoryTableAndGallery() {
           <img src="${item.photo}" alt="${item.behavior}" onclick="openLightbox(${idx})">
           <div class="gallery-meta">
             <div style="font-weight:700; color:var(--color-red);">${item.behavior}</div>
-            <div style="color:var(--color-grey-700);">🕒 ${item.timeStr} • ${item.sourceName || 'AI'}</div>
+            <div style="color:var(--color-grey-700);">${item.timeStr} • ${item.sourceName || 'AI'}</div>
             <div class="gallery-actions">
-              <button onclick="openLightbox(${idx})">🔍 Xem</button>
-              <button class="primary" onclick="downloadPhoto(${idx})">⬇️ Tải</button>
-              <button class="danger-btn" onclick="deletePhoto(${idx})">🗑️</button>
+              <button onclick="openLightbox(${idx})">Xem</button>
+              <button class="primary" onclick="downloadPhoto(${idx})">⬇Tải</button>
+              <button class="danger-btn" onclick="deletePhoto(${idx})"></button>
             </div>
           </div>
         </div>
@@ -426,7 +418,7 @@ function renderHistoryTableAndGallery() {
 window.openLightbox = function(index) {
   const item = alertLogs[index];
   if (!item || !item.photo) return;
-  document.getElementById('lightbox-title').textContent = `🚨 BẰNG CHỨNG VI PHẠM: ${item.behavior}`;
+  document.getElementById('lightbox-title').textContent = `BẰNG CHỨNG VI PHẠM: ${item.behavior}`;
   document.getElementById('lightbox-img').src = item.photo;
   document.getElementById('lightbox-meta').textContent = `Thời gian: ${item.timeStr} | Nguồn: ${item.sourceName || 'AI'} (${item.confPct}%) | Kéo dài: ${item.duration}`;
   document.getElementById('download-single-btn').onclick = () => downloadPhoto(index);
@@ -450,9 +442,7 @@ window.deletePhoto = function(index) {
 
 renderHistoryTableAndGallery();
 
-// =========================================================================
-// 4. HỆ THỐNG ÂM THANH BÁO ĐỘNG
-// =========================================================================
+// Báo động
 let audioCtx = null;
 let lastBeepTime = 0;
 let lastVoiceTime = 0;
@@ -522,9 +512,7 @@ function triggerAlarmSound(behaviorName) {
   playFallbackSiren(mode);
 }
 
-// =========================================================================
-// 5. ĐIỀU KHIỂN CAMERA (TƯƠNG THÍCH CẢ ĐIỆN THOẠI & MÁY TÍNH)
-// =========================================================================
+// Camera
 async function startCamera() {
   try {
     ensureAudioContext();
@@ -556,7 +544,7 @@ async function startCamera() {
     rafId = requestAnimationFrame(inferenceLoop);
   } catch (err) {
     if (violationBar) {
-      violationBar.innerHTML = "❌ Không thể mở Camera: " + err.message;
+      violationBar.innerHTML = "Không thể mở Camera: " + err.message;
       violationBar.style.color = "var(--color-red)";
     }
   }
@@ -573,7 +561,7 @@ document.getElementById('toggle-cam-btn')?.addEventListener('click', () => {
       btn.className = 'danger-btn';
     }
     if (violationBar) {
-      violationBar.innerHTML = "⏸️ Đã tạm dừng hệ thống giám sát";
+      violationBar.innerHTML = "Đang tạm dừng";
       violationBar.style.color = "var(--color-grey-500)";
     }
   } else {
@@ -613,7 +601,7 @@ document.getElementById('export-csv-btn')?.addEventListener('click', () => {
   const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + rows.map(e => e.join(',')).join('\n');
   const link = document.createElement('a');
   link.setAttribute('href', encodeURI(csvContent));
-  link.setAttribute('download', 'nhat_ky_canh_bao_safedrive.csv');
+  link.setAttribute('download', 'Nhat ky vi pham.csv');
   link.click();
 });
 
